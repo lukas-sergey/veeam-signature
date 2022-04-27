@@ -27,9 +27,11 @@ namespace Veeam.Signature
 
             try
             {
+                // Use Autofac nuget. Too many 'new'
                 using (var stream = TryOpenFile(parameters.InputFile.FullName))
                 using (var inputDataProvider = new StreamDataProvider(stream, parameters.BlockSize))
-                using (var shaCalculator = new Sha256HashCalculator(ShowHashInConsole))
+                using (var sequenceMonitor = new BlockSequenceMonitor())
+                using (var shaCalculator = new Sha256HashCalculator(ShowHashInConsole, sequenceMonitor))
                 using (var workersManager = new WorkersManager(workersCount, inputDataProvider, shaCalculator))
                 {
                     workersManager.ProcessAndWait();

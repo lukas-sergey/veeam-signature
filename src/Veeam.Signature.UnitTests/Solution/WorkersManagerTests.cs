@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using NSubstitute;
 using NUnit.Framework;
@@ -9,6 +10,17 @@ namespace Veeam.Signature.UnitTests.Solution
     [TestFixture]
     public class WorkersManagerTests
     {
+        private IBlockSequenceMonitor monitor;
+
+        [SetUp]
+        public void SetUp()
+        {
+            monitor = Substitute.For<IBlockSequenceMonitor>();
+            monitor
+                .When(m => m.DoFor(Arg.Any<long>(), Arg.Any<Action>()))
+                .Do(_ => _.Arg<Action>()());
+        }
+
         [Test]
         [TestCase(10)]
         [TestCase(1)]
@@ -25,7 +37,7 @@ namespace Veeam.Signature.UnitTests.Solution
             var i = 0;
             var input = Substitute.For<IInputProvider>();
             input.GetNextBlock().Returns(_ => i < blocks.Length ? blocks[i++] : null);
-            
+
             var output = Substitute.For<IOutputConsumer>();
 
             using (var workers = new WorkersManager(workersCount, input, output))
@@ -39,14 +51,13 @@ namespace Veeam.Signature.UnitTests.Solution
             output.DidNotReceive().Process(null);
         }
 
-
         [Test]
         public void EmptyStreamTest()
         {
             var result = new Dictionary<long, byte[]>();
             using (var stream = new MemoryStream())
             using (var inputDataProvider = new StreamDataProvider(stream, 1024 * 1024))
-            using (var shaCalculator = new Sha256HashCalculator((i, b) => result.Add(i, b)))
+            using (var shaCalculator = new Sha256HashCalculator((i, b) => result.Add(i, b), monitor))
             using (var workersManager = new WorkersManager(2, inputDataProvider, shaCalculator))
             {
                 workersManager.ProcessAndWait();
@@ -57,11 +68,11 @@ namespace Veeam.Signature.UnitTests.Solution
         [Test]
         [TestCase("C:\\Work\\ACDC.zip", 8)]
         [TestCase("C:\\Work\\ACDC.zip", 32)]
-        [Ignore("it is a real large file")]
+        //[Ignore("it is a integration test with real large file. prepare it before")]
         public void CompareThreadsTest(string fileName, int workersCount)
         {
             var res1 = Run(fileName, 1);
-            
+
             var resN = Run(fileName, workersCount);
             foreach (var key in res1.Keys)
             {
@@ -69,12 +80,33 @@ namespace Veeam.Signature.UnitTests.Solution
             }
         }
 
+        [Test]
+        [TestCase("C:\\Work\\ACDC.zip", 8)]
+        [TestCase("C:\\Work\\ACDC.zip", 32)]
+        //[Ignore("it is a integration test with real large file. prepare it before")]
+        public void CheckSequenceTest(string fileName, int workersCount)
+        {
+            var result = new List<long>();
+            using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var inputDataProvider = new StreamDataProvider(stream, 1024 * 1024))
+            using (var sequenceMonitor = new BlockSequenceMonitor())
+            using (var shaCalculator = new Sha256HashCalculator((i, b) => result.Add(i), sequenceMonitor))
+            using (var workersManager = new WorkersManager(workersCount, inputDataProvider, shaCalculator))
+            {
+                workersManager.ProcessAndWait();
+            }
+            for (var i = 0; i < result.Count; i++)
+            {
+                Assert.AreEqual(i, result[i]);
+            }
+        }
+
         private Dictionary<long, byte[]> Run(string fileName, int workersCount)
         {
             var result = new Dictionary<long, byte[]>();
             using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            using (var inputDataProvider = new StreamDataProvider(stream, 1024*1024))
-            using (var shaCalculator = new Sha256HashCalculator((i, b) => result.Add(i, b)))
+            using (var inputDataProvider = new StreamDataProvider(stream, 1024 * 1024))
+            using (var shaCalculator = new Sha256HashCalculator((i, b) => result.Add(i, b), monitor))
             using (var workersManager = new WorkersManager(workersCount, inputDataProvider, shaCalculator))
             {
                 workersManager.ProcessAndWait();

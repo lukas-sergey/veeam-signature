@@ -8,7 +8,7 @@ namespace Veeam.Signature.Solution
 
         public Stream SubStream { get; }
 
-        public Block(int num, Stream subStream)
+        public Block(long num, Stream subStream)
         {
             Num = num;
             SubStream = subStream;

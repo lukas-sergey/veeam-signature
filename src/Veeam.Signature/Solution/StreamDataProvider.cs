@@ -11,7 +11,7 @@ namespace Veeam.Signature.Solution
         private readonly long blockSize;
         private readonly long blocksCount;
 
-        private int currentBlockNum = -1;
+        private long currentBlockNum = -1;
 
         public StreamDataProvider(Stream stream, long blockSize)
         {

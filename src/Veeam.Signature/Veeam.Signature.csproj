@@ -49,6 +49,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Solution\Block.cs" />
+    <Compile Include="Solution\BlockSequenceMonitor.cs" />
+    <Compile Include="Solution\IBlockSequenceMonitor.cs" />
     <Compile Include="Solution\ProgramParameters.cs" />
     <Compile Include="Solution\ProcessingFailedException.cs" />
     <Compile Include="Solution\Sha256HashCalculator.cs" />
