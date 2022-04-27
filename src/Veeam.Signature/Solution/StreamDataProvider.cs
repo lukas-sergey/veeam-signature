@@ -8,12 +8,12 @@ namespace Veeam.Signature.Solution
     public class StreamDataProvider : IInputProvider, IDisposable
     {
         private Stream stream;
-        private readonly int blockSize;
+        private readonly long blockSize;
         private readonly long blocksCount;
 
         private int currentBlockNum = -1;
 
-        public StreamDataProvider(Stream stream, int blockSize)
+        public StreamDataProvider(Stream stream, long blockSize)
         {
             this.blockSize = blockSize;
             this.stream = stream;

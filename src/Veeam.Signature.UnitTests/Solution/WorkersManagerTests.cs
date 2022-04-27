@@ -39,10 +39,25 @@ namespace Veeam.Signature.UnitTests.Solution
             output.DidNotReceive().Process(null);
         }
 
+
+        [Test]
+        public void EmptyStreamTest()
+        {
+            var result = new Dictionary<long, byte[]>();
+            using (var stream = new MemoryStream())
+            using (var inputDataProvider = new StreamDataProvider(stream, 1024 * 1024))
+            using (var shaCalculator = new Sha256HashCalculator((i, b) => result.Add(i, b)))
+            using (var workersManager = new WorkersManager(2, inputDataProvider, shaCalculator))
+            {
+                workersManager.ProcessAndWait();
+            }
+            Assert.IsEmpty(result);
+        }
+
         [Test]
         [TestCase("C:\\Work\\ACDC.zip", 8)]
         [TestCase("C:\\Work\\ACDC.zip", 32)]
-        //[Ignore("it is a real large file")]
+        [Ignore("it is a real large file")]
         public void CompareThreadsTest(string fileName, int workersCount)
         {
             var res1 = Run(fileName, 1);
